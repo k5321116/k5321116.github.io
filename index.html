@@ -522,7 +522,7 @@
             }
 
             renderKeywordSlots();
-            
+            renderCluesHighlight();
             updateActiveClueHeader();
         }
 
@@ -805,7 +805,6 @@
                 const activeEl = document.getElementById(`clue-item-${activeNum}`);
                 if (activeEl) {
                     activeEl.classList.add('bg-indigo-900/80', 'border-indigo-400', 'text-amber-300');
-                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             }
         }
