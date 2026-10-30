@@ -136,7 +136,7 @@
 
             <!-- Header Controls & Timer -->
             <div class="flex items-center gap-2 flex-wrap">
-                
+
                 <button id="btn-sound" onclick="toggleSound()" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition" title="効果音 ON/OFF">
                     <i data-lucide="volume-2" id="icon-sound" class="w-4 h-4"></i>
                 </button>
@@ -144,11 +144,6 @@
                 <button onclick="checkAnswers()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition shadow shadow-emerald-900/30">
                     <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
                     <span>答え合わせ</span>
-                </button>
-
-                <button onclick="revealHint()" class="px-2.5 py-1.5 bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1 transition">
-                    <i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>
-                    <span class="hidden sm:inline">ヒント</span>
                 </button>
 
                 <button onclick="resetPuzzle()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-900/50 border border-slate-700 text-slate-300 hover:text-rose-300 text-xs rounded-lg transition" title="リセット">
@@ -244,7 +239,6 @@
     </main>
 
     <!-- Edit / Customize Modal for Booth Staff -->
-     <!--
     <div id="modal-edit" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
@@ -270,7 +264,7 @@
                 <div class="space-y-3">
                     <h4 class="font-bold text-amber-400 text-sm border-b border-slate-800 pb-1">カギ・問題文の編集</h4>
                     <div id="edit-clues-container" class="space-y-2">
-                        
+                        <!-- Dynamically filled clue inputs -->
                     </div>
                 </div>
             </div>
@@ -285,7 +279,7 @@
             </div>
         </div>
     </div>
-    -->
+
     <!-- Victory Celebration Modal -->
     <div id="modal-victory" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-gradient-to-b from-slate-900 to-indigo-950 border-2 border-amber-400/80 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl flex flex-col items-center gap-4 animate-bounce-short">
@@ -395,14 +389,14 @@
         const DEFAULT_PUZZLE = {
             title: "台湾遊学体験クロスワード",
             clues: {
-                1: { num: 1, dir: 'DOWN', question: "完成当時東洋一のダムを設計した人（6文字）", answer: "はったよいち", row: 0, col: 7, len: 6 },
-                2: { num: 2, dir: 'ACROSS', question: "台湾で言葉が通じた（7文字）", answer: "たいわんゆうじ",  row: 2, col: 7, len: 7 },
-                3: { num: 3, dir: 'DOWN', question: "台湾（5文字）", answer: "やみたばこ", row: 3, col:  5,  len: 5 },
-                4: { num: 4, dir: 'ACROSS', question: "かぎ①の方が完成当時東洋一と言われたダムに使った「〇〇〇〇〇〇〇〇〇〇〇〇工法」（12文字）", answer: "せみはいどろりっくふぃる", row: 4, col: 4, len: 12 },
-                5: { num: 5, dir: 'ACROSS', question: "台湾（11文字）", answer: "ちゅうごくこくみんとう", row: 7, col: 0, len: 11 },
-                6: { num: 6, dir: 'ACROSS', question: "台湾（7文字）", answer: "とうとくしょう", row: 7, col: 9, len: 7 },
-                7: { num: 7, dir: 'DOWN', question: "完成当時東洋一のダム", answer: "うさんとうだむ", row: 7,  col: 10, len: 7 },
-                8: { num: 8, dir: 'DOWN', question: "学祭（6文字）", answer: "しゅたいしゃ", row: 7, col: 13, len: 6 }
+                1: { num: 1, dir: 'DOWN', question: "台湾の人々の幸せを願い台湾のためのダムを建設した日本人は？（6文字）", answer: "はったよいち", row: 0, col: 7, len: 6 },
+                2: { num: 2, dir: 'ACROSS', question: "台湾周辺で軍事的な緊張が高まり、武力衝突などが懸念される事態は？（7文字）", answer: "たいわんゆうじ",  row: 2, col: 7, len: 7 },
+                3: { num: 3, dir: 'DOWN', question: "228事件の発端になった 〇〇〇〇〇事件（5文字）", answer: "やみたばこ", row: 3, col:  5,  len: 5 },
+                4: { num: 4, dir: 'ACROSS', question: "台湾で完成当時東洋一と言われたダムに使った「〇〇〇〇〇〇〇〇〇〇〇〇工法」（12文字）", answer: "せみはいどろりっくふぃる", row: 4, col: 4, len: 12 },
+                5: { num: 5, dir: 'ACROSS', question: "1945年に台湾へ入り、台湾の人々の不満を高めた政党は何でしょう？（11文字）", answer: "ちゅうごくこくみんとう", row: 7, col: 0, len: 11 },
+                6: { num: 6, dir: 'ACROSS', question: "台湾の人々を守るため、拷問を受けても最後まで名簿を渡さなかった人物は？（7文字）", answer: "とうとくしょう", row: 7, col: 9, len: 7 },
+                7: { num: 7, dir: 'DOWN', question: "完成当時東洋一のダムや珊瑚潭とも言われている", answer: "うさんとうだむ", row: 7,  col: 10, len: 7 },
+                8: { num: 8, dir: 'DOWN', question: "社会の課題を自分事として捉え、自ら考え、行動する人は（6文字）", answer: "しゅたいしゃ", row: 7, col: 13, len: 6 }
             },
             // Mapping cell positions to special circled number badges ① to ⑤
             circledCells: {
@@ -514,7 +508,7 @@
             }
 
             renderKeywordSlots();
-            renderCluesHighlight();
+            
             updateActiveClueHeader();
         }
 
@@ -797,6 +791,7 @@
                 const activeEl = document.getElementById(`clue-item-${activeNum}`);
                 if (activeEl) {
                     activeEl.classList.add('bg-indigo-900/80', 'border-indigo-400', 'text-amber-300');
+                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             }
         }
@@ -874,7 +869,7 @@
             }
 
             document.getElementById('victory-keyword-display').innerText = keyword;
-           
+            document.getElementById('victory-time').innerText = document.getElementById('timer-display').innerText;
             document.getElementById('modal-victory').classList.remove('hidden');
 
             // Trigger Confetti
@@ -892,7 +887,16 @@
         }
 
         // Timer Logic
-        
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerSeconds = 0;
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+                const secs = String(timerSeconds % 60).padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+            }, 1000);
+        }
 
         // Custom Puzzle Edit Modal Handlers
         function openEditModal() {
@@ -961,7 +965,7 @@
             renderCluesLists();
             renderGrid();
             setupHiddenInput();
-            
+            startTimer();
         };
     </script>
 </body>
