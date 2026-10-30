@@ -60,6 +60,35 @@
             z-index: 10;
         }
 
+        /* 答え合わせで間違っていたマス */
+        .cell-square.wrong:not(.selected) {
+            background-color: #7f1d1d !important;
+            border-color: #f87171 !important;
+            color: #fecaca !important;
+        }
+
+        /* 不正解のときに盤面を少し揺らす */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake { animation: shake 0.4s ease; }
+        @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
+
+        /* 答え合わせの結果メッセージ */
+        #check-toast {
+            position: fixed;
+            left: 50%;
+            top: 84px;
+            transform: translateX(-50%);
+            z-index: 40;
+            width: calc(100% - 32px);
+            max-width: 420px;
+            transition: opacity 0.3s ease;
+        }
+        #check-toast.fade { opacity: 0; }
+
         .cell-square.correct {
             background-color: #064e3b !important;
             border-color: #10b981 !important;
@@ -293,20 +322,21 @@
                 <p class="text-xs text-indigo-200 mt-1">素晴らしい！全マス正確に完成しました！</p>
             </div>
 
-            <div class="w-full bg-slate-900/90 border border-amber-400/30 rounded-xl p-3 my-1">
-                <span class="text-[10px] text-slate-400 uppercase tracking-widest block">解き明かされた秘密キーワード</span>
-                <div id="victory-keyword-display" class="text-xl font-black text-amber-300 tracking-widest mt-1">
-                    <!-- Target Keyword -->
-                </div>
-            </div>
-
-            <div class="flex items-center gap-4 text-xs text-slate-300 font-mono">
-                <div>クリアタイム: <span id="victory-time" class="text-amber-400 font-bold">00:00</span></div>
-            </div>
-
             <button onclick="closeVictoryModal()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-lg transition transform active:scale-95">
                 展示画面に戻る
             </button>
+        </div>
+    </div>
+
+    <!-- 答え合わせの結果（不正解のとき） -->
+    <div id="check-toast" class="hidden" role="status" aria-live="polite">
+        <div class="bg-rose-950/95 border-2 border-rose-400 rounded-xl px-4 py-3 shadow-2xl flex items-start gap-3">
+            <div class="text-2xl leading-none">❌</div>
+            <div class="flex-1 min-w-0">
+                <p class="font-black text-rose-100 text-sm">おしい！まだ正解ではありません</p>
+                <p id="check-toast-detail" class="text-xs text-rose-200 mt-1 leading-relaxed"></p>
+            </div>
+            <button onclick="hideCheckToast()" class="text-rose-300 hover:text-white text-lg leading-none px-1" aria-label="閉じる">×</button>
         </div>
     </div>
 
@@ -353,6 +383,21 @@
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
                 osc.start(now);
                 osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                // 低い音を2回「ブブー」
+                [0, 0.18].forEach(t => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.type = 'square';
+                    o.frequency.setValueAtTime(160, now + t);
+                    g.gain.setValueAtTime(0.06, now + t);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + t + 0.15);
+                    o.start(now + t);
+                    o.stop(now + t + 0.15);
+                });
+                return;
             } else if (type === 'fanfare') {
                 const notes = [523.25, 659.25, 783.99, 1046.50];
                 notes.forEach((freq, idx) => {
@@ -411,11 +456,10 @@
         // Active State Variables
         let currentPuzzle = JSON.parse(JSON.stringify(DEFAULT_PUZZLE));
         let userGrid = {}; // key: "r,c", value: "char"
+        let wrongCells = new Set(); // 答え合わせで間違っていたマス（直すと消える）
         let cellMap = {};  // key: "r,c", value: cell configuration metadata
         let selectedCell = { r: 1, c: 1 };
         let activeDirection = 'ACROSS'; // 'ACROSS' or 'DOWN'
-        let timerSeconds = 0;
-        let timerInterval = null;
 
         // Calculate cell metadata matrix from clues configuration
         function buildCellMap() {
@@ -480,6 +524,9 @@
                             cellDiv.classList.add('selected');
                         } else if (isWordActive) {
                             cellDiv.classList.add('active');
+                        }
+                        if (wrongCells.has(key)) {
+                            cellDiv.classList.add('wrong');
                         }
 
                         // Render Start Number Badge (1, 2, 3...)
@@ -568,11 +615,11 @@
             if (!cellMap[key]) return;
 
             userGrid[key] = char;
+            wrongCells.delete(key); // 書き直したら赤を消す
             moveNextCell();
             if (!batch) {
                 playSound('key');
                 renderGrid();
-                checkAutoVictory();
             }
         }
 
@@ -581,10 +628,12 @@
             const key = `${selectedCell.r},${selectedCell.c}`;
             if (userGrid[key]) {
                 delete userGrid[key];
+                wrongCells.delete(key);
             } else {
                 movePrevCell();
                 const prevKey = `${selectedCell.r},${selectedCell.c}`;
                 delete userGrid[prevKey];
+                wrongCells.delete(prevKey);
             }
             renderGrid();
         }
@@ -651,7 +700,6 @@
                     if (compStart) { selectedCell = { r: compStart.r, c: compStart.c }; activeDirection = compStart.dir; }
                     chars.forEach(ch => typeChar(ch, true));
                     renderGrid();
-                    checkAutoVictory();
                 }
             }
             compStart = null;
@@ -812,11 +860,47 @@
             });
 
             if (allCorrect && filledCount === totalCells) {
+                wrongCells.clear();
+                hideCheckToast();
                 triggerVictory();
             } else {
-                playSound('correct');
-                alert(`答え合わせ結果:\n現在 ${filledCount} / ${totalCells} マス入力済みです。正確に入力されているかチェックしてみましょう！`);
+                showWrongResult(totalCells - filledCount);
             }
+        }
+
+        // 不正解のときの表示：間違ったマスを赤くして、メッセージを出す
+        function showWrongResult(emptyCount) {
+            wrongCells.clear();
+            Object.entries(cellMap).forEach(([key, cell]) => {
+                if (userGrid[key] && userGrid[key] !== cell.correctChar) wrongCells.add(key);
+            });
+            renderGrid();
+
+            const parts = [];
+            if (wrongCells.size) parts.push(`赤いマスが ${wrongCells.size} 個まちがっています。`);
+            if (emptyCount) parts.push(`まだ入っていないマスが ${emptyCount} 個あります。`);
+            document.getElementById('check-toast-detail').innerText = parts.join('\n');
+
+            const toast = document.getElementById('check-toast');
+            toast.classList.remove('hidden', 'fade');
+            clearTimeout(toastTimer);
+            clearTimeout(toastHideTimer);
+            toastTimer = setTimeout(hideCheckToast, 4000);
+
+            const grid = document.getElementById('crossword-grid');
+            grid.classList.remove('shake');
+            void grid.offsetWidth; // アニメーションを毎回やり直すため
+            grid.classList.add('shake');
+
+            playSound('wrong');
+        }
+
+        let toastTimer = null;
+        let toastHideTimer = null;
+        function hideCheckToast() {
+            const toast = document.getElementById('check-toast');
+            toast.classList.add('fade');
+            toastHideTimer = setTimeout(() => toast.classList.add('hidden'), 300);
         }
 
         function revealHint() {
@@ -832,6 +916,7 @@
         function resetPuzzle() {
             if (confirm('入力された文字をすべてクリアしますか？')) {
                 userGrid = {};
+                wrongCells.clear();
                 renderGrid();
                 playSound('key');
             }
@@ -858,18 +943,6 @@
         function triggerVictory() {
             playSound('fanfare');
             
-            // Generate Secret Keyword string
-            let keyword = '';
-            for (let i = 1; i <= 5; i++) {
-                Object.entries(currentPuzzle.circledCells).forEach(([coords, num]) => {
-                    if (num === i) {
-                        keyword += userGrid[coords] || '？';
-                    }
-                });
-            }
-
-            document.getElementById('victory-keyword-display').innerText = keyword;
-            document.getElementById('victory-time').innerText = document.getElementById('timer-display').innerText;
             document.getElementById('modal-victory').classList.remove('hidden');
 
             // Trigger Confetti
@@ -884,18 +957,6 @@
 
         function closeVictoryModal() {
             document.getElementById('modal-victory').classList.add('hidden');
-        }
-
-        // Timer Logic
-        function startTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            timerSeconds = 0;
-            timerInterval = setInterval(() => {
-                timerSeconds++;
-                const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-                const secs = String(timerSeconds % 60).padStart(2, '0');
-                document.getElementById('timer-display').innerText = `${mins}:${secs}`;
-            }, 1000);
         }
 
         // Custom Puzzle Edit Modal Handlers
@@ -965,7 +1026,6 @@
             renderCluesLists();
             renderGrid();
             setupHiddenInput();
-            startTimer();
         };
     </script>
 </body>
